@@ -37,12 +37,100 @@ El sistema maneja tres tablas principales:
    ```
 
 ## Configuración
-1. Configurar las variables de entorno:
-   - `PORT`: Puerto del servidor (por defecto: 3000)
-   - `DB_HOST`: Host de la base de datos
-   - `DB_USER`: Usuario de la base de datos
-   - `DB_PASSWORD`: Contraseña de la base de datos
-   - `DB_NAME`: Nombre de la base de datos
+
+### 1. Configurar MySQL con Docker
+Para configurar la base de datos MySQL usando Docker, ejecute:
+
+```bash
+docker run --name mysql_medicamentos \
+  -e MYSQL_ROOT_PASSWORD=clave123 \
+  -e MYSQL_DATABASE=medicamentosDB \
+  -e MYSQL_USER=admin \
+  -e MYSQL_PASSWORD=clave123 \
+  -p 3306:3306 \
+  -v mysql_medicamentos_data:/var/lib/mysql \
+  -d mysql:8.0 \
+  --default-authentication-plugin=mysql_native_password
+```
+
+> **Nota sobre seguridad**: Este proyecto utiliza contraseñas simples y expuestas por razones educativas. En un entorno de producción, se deben implementar mejores prácticas de seguridad, como:
+> - Uso de contraseñas seguras y únicas
+> - Almacenamiento seguro de credenciales
+> - Uso de variables de entorno para credenciales
+> - Implementación de políticas de seguridad robustas
+> - Uso de conexiones seguras (SSL/TLS)
+> 
+> Las contraseñas mostradas son solo para fines educativos y no deben ser utilizadas en producción.
+
+### 2. Acceder a MySQL
+Para acceder a MySQL:
+```bash
+docker exec -it mysql_medicamentos mysql -u root -p
+# Password: clave123
+```
+
+### 3. Crear la base de datos y tablas
+Ejecutar el siguiente script SQL:
+
+```sql
+-- Crear la base de datos
+CREATE DATABASE IF NOT EXISTS medicamentos_db;
+USE medicamentos_db;
+
+-- Tabla Compuesto
+CREATE TABLE IF NOT EXISTS Compuesto (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    UNIQUE KEY unique_nombre (nombre)
+);
+
+-- Tabla Medicamento
+CREATE TABLE IF NOT EXISTS Medicamento (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    fabricante VARCHAR(100) NOT NULL,
+    UNIQUE KEY unique_nombre_fabricante (nombre, fabricante)
+);
+
+-- Tabla de relación CompuestoPorMedicamento
+CREATE TABLE IF NOT EXISTS CompuestoPorMedicamento (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    compuesto_id INT NOT NULL,
+    medicamento_id INT NOT NULL,
+    concentracion DECIMAL(10,2) NOT NULL,
+    unidad_medida VARCHAR(20) NOT NULL,
+    FOREIGN KEY (compuesto_id) REFERENCES Compuesto(id),
+    FOREIGN KEY (medicamento_id) REFERENCES Medicamento(id),
+    UNIQUE KEY unique_compuesto_medicamento (compuesto_id, medicamento_id)
+);
+
+-- Insertar datos de ejemplo
+INSERT INTO Compuesto (nombre) VALUES 
+('Acetaminofén'),
+('Cetirizina'),
+('Cafeína'),
+('Fenilefrina Clorhidrato');
+
+INSERT INTO Medicamento (nombre, fabricante) VALUES 
+('Noxpirin', 'Laboratorios Siegfried');
+
+-- Insertar relaciones con sus concentraciones
+INSERT INTO CompuestoPorMedicamento (compuesto_id, medicamento_id, concentracion, unidad_medida) VALUES 
+(1, 1, 500, 'mg'),  -- Acetaminofén 500mg
+(2, 1, 10, 'mg'),   -- Cetirizina 10mg
+(3, 1, 30, 'mg'),   -- Cafeína 30mg
+(4, 1, 10, 'mg');   -- Fenilefrina Clorhidrato 10mg
+```
+
+### 4. Configurar variables de entorno
+Crear un archivo `.env` con las siguientes variables:
+```env
+PORT=3000
+DB_HOST=localhost
+DB_USER=admin
+DB_PASSWORD=clave123
+DB_NAME=medicamentosDB
+```
 
 ## Estructura del Proyecto
 ```
